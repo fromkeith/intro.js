@@ -1222,7 +1222,7 @@
         left: this._options.scrollParent.scrollX
       };
     } else if (this._options.scrollParent !== window) {
-      return _getOffset.call(this, this._options.scrollParent, true);
+      return _getOffset.call(this, this._options.scrollParent);
     } else {
       var D = document.documentElement;
       return { width: D.clientWidth, height: D.clientHeight, top:0, left: 0 };
@@ -1306,7 +1306,7 @@
    * @param {Object} element
    * @returns Element's position info
    */
-  function _getOffset(element, withoutScrollOffset) {
+  function _getOffset(element) {
     var elementPosition = {};
 
     //set width
@@ -1324,7 +1324,7 @@
       element = element.offsetParent;
     }
     var wrapper = {top: 0, left: 0};
-    if (withoutScrollOffset !== true) {
+    if (this._options.scrollParent === window) {
       wrapper = _getWinSize.call(this);
     }
     //set top
