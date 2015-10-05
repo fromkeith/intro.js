@@ -299,7 +299,8 @@
           temp[key] = _cloneObject(object[key]);
         }
       }
-      if (object.then && !temp.then) {
+      // don't make a copy of promises as they don't work that way..
+      if (object.then) {
         temp.then = function (a, b) {
           return object.then(a, b);
         };
