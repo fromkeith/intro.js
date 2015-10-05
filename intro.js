@@ -70,6 +70,51 @@
   }
 
   /**
+   * Taks an element item, determines if we need to use
+   * a query selector, or a promise. Or if the element
+   * is already resolved or no element is provided.
+   *
+   * @api private
+   * @method _resolveElement
+   * @param {Object} step
+   * @returns {Object} the resolved element wrapper
+   */
+  function _resolveElement(step) {
+    //use querySelector function only when developer used CSS selector
+    if (typeof(step.element) === 'string') {
+      //grab the element with given selector from the page
+      step.element = document.querySelector(step.element);
+    } else if (typeof(step.element) === 'object' && step.element.then !== undefined) {
+      // using a promise to give us the element
+      var promise = step.element;
+      promise.then(function (ele) {
+        step.element = ele;
+        _resolveElement(step);
+      }, function (ele) {
+        step.element = ele;
+        _resolveElement(step);
+      });
+      return step;
+    }
+
+    //intro without element
+    if (typeof(step.element) === 'undefined' || step.element == null) {
+      var floatingElementQuery = document.querySelector(".introjsFloatingElement");
+
+      if (floatingElementQuery == null) {
+        floatingElementQuery = document.createElement('div');
+        floatingElementQuery.className = 'introjsFloatingElement';
+
+        document.body.appendChild(floatingElementQuery);
+      }
+
+      step.element  = floatingElementQuery;
+      step.position = 'floating';
+    }
+    return step;
+  }
+
+  /**
    * Initiate a new introduction/guide from an element in the page
    *
    * @api private
@@ -87,26 +132,7 @@
         var currentItem = _cloneObject(this._options.steps[i]);
         //set the step
         currentItem.step = introItems.length + 1;
-        //use querySelector function only when developer used CSS selector
-        if (typeof(currentItem.element) === 'string') {
-          //grab the element with given selector from the page
-          currentItem.element = document.querySelector(currentItem.element);
-        }
-
-        //intro without element
-        if (typeof(currentItem.element) === 'undefined' || currentItem.element == null) {
-          var floatingElementQuery = document.querySelector(".introjsFloatingElement");
-
-          if (floatingElementQuery == null) {
-            floatingElementQuery = document.createElement('div');
-            floatingElementQuery.className = 'introjsFloatingElement';
-
-            document.body.appendChild(floatingElementQuery);
-          }
-
-          currentItem.element  = floatingElementQuery;
-          currentItem.position = 'floating';
-        }
+        currentItem = _resolveElement(currentItem);
 
         if (currentItem.element != null) {
           introItems.push(currentItem);
@@ -273,6 +299,11 @@
           temp[key] = _cloneObject(object[key]);
         }
       }
+      if (object.then && !temp.then) {
+        temp.then = function (a, b) {
+          return object.then(a, b);
+        };
+      }
       return temp;
   }
   /**
@@ -318,8 +349,19 @@
     if (typeof (this._introBeforeChangeCallback) !== 'undefined') {
       this._introBeforeChangeCallback.call(this, nextStep.element);
     }
-
-    _showElement.call(this, nextStep);
+    if (nextStep.element.then) {
+      var curStep = this._currentStep;
+      var instance = this;
+      nextStep.element.then(function () {
+        // make sure we haven't moved passed the step
+        if (instance._currentStep !== curStep) {
+          return;
+        }
+        _showElement.call(instance, nextStep);
+      });
+    } else {
+      _showElement.call(this, nextStep);
+    }
   }
 
   /**
@@ -340,7 +382,19 @@
       this._introBeforeChangeCallback.call(this, nextStep.element);
     }
 
-    _showElement.call(this, nextStep);
+    if (nextStep.element.then) {
+      var curStep = this._currentStep;
+      var instance = this;
+      nextStep.element.then(function () {
+        // make sure we haven't moved passed the step
+        if (instance._currentStep !== curStep) {
+          return;
+        }
+        _showElement.call(instance, nextStep);
+      });
+    } else {
+      _showElement.call(this, nextStep);
+    }
   }
 
   /**
