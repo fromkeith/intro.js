@@ -65,7 +65,9 @@
       /* Precedence of positions, when auto is enabled */
       positionPrecedence: ["bottom", "top", "right", "left"],
       /* Disable an interaction with element? */
-      disableInteraction: false
+      disableInteraction: false,
+      /* The parent scroll element that we will adjust to make things visible. */
+      scrollParent: window
     };
   }
 
@@ -533,9 +535,9 @@
         currentTooltipPosition = _determineAutoPosition.call(this, targetElement, tooltipLayer, currentTooltipPosition);
       }
     }
-    targetOffset  = _getOffset(targetElement);
-    tooltipOffset = _getOffset(tooltipLayer);
-    windowSize    = _getWinSize();
+    targetOffset  = _getOffset.call(this, targetElement);
+    tooltipOffset = _getOffset.call(this, tooltipLayer);
+    windowSize    = _getWinSize.call(this);
     switch (currentTooltipPosition) {
       case 'top':
         arrowLayer.className = 'introjs-arrow bottom';
@@ -663,10 +665,10 @@
     // Take a clone of position precedence. These will be the available
     var possiblePositions = this._options.positionPrecedence.slice();
 
-    var windowSize = _getWinSize();
-    var tooltipHeight = _getOffset(tooltipLayer).height + 10;
-    var tooltipWidth = _getOffset(tooltipLayer).width + 20;
-    var targetOffset = _getOffset(targetElement);
+    var windowSize = _getWinSize.call(this);
+    var tooltipHeight = _getOffset.call(this, tooltipLayer).height + 10;
+    var tooltipWidth = _getOffset.call(this, tooltipLayer).width + 20;
+    var targetOffset = _getOffset.call(this, targetElement);
 
     // If we check all the possible areas, and there are no valid places for the tooltip, the element
     // must take up most of the screen real estate. Show the tooltip floating in the middle of the screen.
@@ -739,7 +741,7 @@
       if (!this._introItems[this._currentStep]) return;
 
       var currentElement  = this._introItems[this._currentStep],
-          elementPosition = _getOffset(currentElement.element),
+          elementPosition = _getOffset.call(this, currentElement.element),
           widthHeightPadding = 10;
 
       if (currentElement.position == 'floating') {
@@ -829,7 +831,32 @@
         oldHelperLayer = document.querySelector('.introjs-helperLayer'),
         oldReferenceLayer = document.querySelector('.introjs-tooltipReferenceLayer'),
         highlightClass = 'introjs-helperLayer',
-        elementPosition = _getOffset(targetElement.element);
+        elementPosition = _getOffset.call(this, targetElement.element);
+
+    if (!_elementInViewport.call(this, targetElement.element) && this._options.scrollToElement === true) {
+      var winDimen = _getWinSize.call(this),
+        top = elementPosition.top, //rect.bottom - (rect.bottom - rect.top),
+        bottom = elementPosition.top + elementPosition.height - winDimen.height; //rect.bottom - winHeight;
+
+      //Scroll up
+      if (top < 0 || targetElement.element.clientHeight > winDimen.height) {
+        if (this._options.scrollParent.scrollTo) {
+          this._options.scrollParent.scrollTo(0, top - 30);// - winDimen.top; // 30px padding from edge to look nice
+        } else {
+          this._options.scrollParent.scrollTop = top - 30 - winDimen.top;
+        }
+
+      //Scroll down
+      } else {
+        if (this._options.scrollParent.scrollTo) {
+          this._options.scrollParent.scrollTo(0, bottom + 100);// - winDimen.top; // 70px + 30px padding from edge to look nice
+        } else {
+          this._options.scrollParent.scrollTop = top - 30 - winDimen.top;
+        }
+      }
+      // reget the offset as the scrolling may have changed it
+      elementPosition = _getOffset.call(this, targetElement.element);
+    }
 
     //check for a current step highlight class
     if (typeof (targetElement.highlightClass) === 'string') {
@@ -1147,22 +1174,6 @@
       parentElm = parentElm.parentNode;
     }
 
-    if (!_elementInViewport(targetElement.element) && this._options.scrollToElement === true) {
-      var rect = targetElement.element.getBoundingClientRect(),
-        winHeight = _getWinSize().height,
-        top = rect.bottom - (rect.bottom - rect.top),
-        bottom = rect.bottom - winHeight;
-
-      //Scroll up
-      if (top < 0 || targetElement.element.clientHeight > winHeight) {
-        window.scrollBy(0, top - 30); // 30px padding from edge to look nice
-
-      //Scroll down
-      } else {
-        window.scrollBy(0, bottom + 100); // 70px + 30px padding from edge to look nice
-      }
-    }
-
     if (typeof (this._introAfterChangeCallback) !== 'undefined') {
       this._introAfterChangeCallback.call(this, targetElement.element);
     }
@@ -1203,11 +1214,18 @@
    * @returns {Object} width and height attributes
    */
   function _getWinSize() {
-    if (window.innerWidth != undefined) {
-      return { width: window.innerWidth, height: window.innerHeight };
+    if (this._options.scrollParent.innerWidth != undefined) {
+      return {
+        width: this._options.scrollParent.innerWidth,
+        height: this._options.scrollParent.innerHeight,
+        top: this._options.scrollParent.scrollY,
+        left: this._options.scrollParent.scrollX
+      };
+    } else if (this._options.scrollParent !== window) {
+      return _getOffset.call(this, this._options.scrollParent, true);
     } else {
       var D = document.documentElement;
-      return { width: D.clientWidth, height: D.clientHeight };
+      return { width: D.clientWidth, height: D.clientHeight, top:0, left: 0 };
     }
   }
 
@@ -1251,7 +1269,7 @@
       overlayLayer.setAttribute('style', styleText);
     } else {
       //set overlay layer position
-      var elementPosition = _getOffset(targetElm);
+      var elementPosition = _getOffset.call(this, targetElm);
       if (elementPosition) {
         styleText += 'width: ' + elementPosition.width + 'px; height:' + elementPosition.height + 'px; top:' + elementPosition.top + 'px;left: ' + elementPosition.left + 'px;';
         overlayLayer.setAttribute('style', styleText);
@@ -1288,7 +1306,7 @@
    * @param {Object} element
    * @returns Element's position info
    */
-  function _getOffset(element) {
+  function _getOffset(element, withoutScrollOffset) {
     var elementPosition = {};
 
     //set width
@@ -1301,14 +1319,18 @@
     var _x = 0;
     var _y = 0;
     while (element && !isNaN(element.offsetLeft) && !isNaN(element.offsetTop)) {
-      _x += element.offsetLeft;
-      _y += element.offsetTop;
+      _x += element.offsetLeft - element.scrollLeft;
+      _y += element.offsetTop - element.scrollTop;
       element = element.offsetParent;
     }
+    var wrapper = {top: 0, left: 0};
+    if (withoutScrollOffset !== true) {
+      wrapper = _getWinSize.call(this);
+    }
     //set top
-    elementPosition.top = _y;
+    elementPosition.top = _y + wrapper.top;
     //set left
-    elementPosition.left = _x;
+    elementPosition.left = _x + wrapper.left;
 
     return elementPosition;
   }
