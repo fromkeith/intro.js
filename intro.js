@@ -334,6 +334,9 @@
     } else {
       ++this._currentStep;
     }
+    if (this._currentStep - 1 >= 0) {
+      _removeStepListeners(this._introItems[this._currentStep - 1]);
+    }
 
     if ((this._introItems.length) <= this._currentStep) {
       //end of the intro
@@ -373,6 +376,9 @@
   function _previousStep() {
     this._direction = 'backward';
 
+
+    _removeStepListeners(this._introItems[this._currentStep]);
+
     if (this._currentStep === 0) {
       return false;
     }
@@ -411,6 +417,12 @@
     //return if intro already completed or skipped
     if (overlayLayer == null) {
       return;
+    }
+
+    // clear any event listeners still attached to the page
+    var i;
+    for (i = 0; i < this._introItems.length; i++) {
+      _removeStepListeners(this._introItems[i]);
     }
 
     //for fade-out animation
@@ -760,6 +772,46 @@
   }
 
   /**
+   * Removes event listeners we may have attached during the given step.
+   *
+   * @api private
+   * @method _removeStepListeners
+   * @param {Object} step
+   */
+  function _removeStepListeners(step) {
+    if (!step._listeners) {
+      return;
+    }
+    var i;
+    for (i = 0; i < step._listeners.length; i++) {
+      step._listeners[i].ele.removeEventListener(step._listeners[i].name, step._listeners[i].func);
+    }
+    step._listeners.splice();
+  }
+
+  /**
+   * Attachs and records the event listener for the given step and child element
+   *
+   * @api private
+   * @method _attachSubListener
+   * @param {Object} step
+   * @param {Element} childElement
+   * @param {String} eventName
+   * @param {Function} eventFunc
+   */
+  function _attachSubListener(step, childElement, eventName, eventFunc) {
+    if (!step._listeners) {
+      step._listeners = [];
+    }
+    step._listeners.push({
+      ele: childElement,
+      name: eventName,
+      func: eventFunc
+    });
+    childElement.addEventListener(eventName, eventFunc);
+  }
+
+  /**
    * Show an element on the page
    *
    * @api private
@@ -794,7 +846,45 @@
           oldtooltipContainer  = oldReferenceLayer.querySelector('.introjs-tooltip'),
           skipTooltipButton    = oldReferenceLayer.querySelector('.introjs-skipbutton'),
           prevTooltipButton    = oldReferenceLayer.querySelector('.introjs-prevbutton'),
-          nextTooltipButton    = oldReferenceLayer.querySelector('.introjs-nextbutton');
+          nextTooltipButton    = oldReferenceLayer.querySelector('.introjs-nextbutton'),
+          oldButtonsLayer      = oldReferenceLayer.querySelector('.introjs-tooltipbuttons'),
+          oldBulletsLayer      = oldReferenceLayer.querySelector('.introjs-bullets'),
+          oldProgressLayer     = oldReferenceLayer.querySelector('.introjs-progress');
+
+      // check if we want to hide the buttons on this step or not
+      if (this._options.showButtons === false || targetElement.hideButtons) {
+        oldButtonsLayer.style.display = 'none';
+      } else {
+        oldButtonsLayer.style.display = '';
+      }
+      // check if we want to hide the bullets on this step or not
+      if (this._options.showBullets === false || targetElement.hideBullets) {
+        oldBulletsLayer.style.display = 'none';
+      } else {
+        oldBulletsLayer.style.display = '';
+      }
+      // check if we want to hide the bullets on this step or not
+      if (this._options.showProgress === false || targetElement.hideProgress) {
+        oldProgressLayer.style.display = 'none';
+      } else {
+        oldProgressLayer.style.display = '';
+      }
+      // check if we want to progress by clicking an element inside the page
+      // eg. 'create widget' to progress
+      if (targetElement.clickNextElement) {
+        var innerNext = _resolveElement({element: targetElement.clickNextElement});
+        var instance = this;
+        function attachListenerToNext() {
+          _attachSubListener(targetElement, innerNext.element, 'click', function () {
+            _nextStep.call(instance);
+          });
+        }
+        if (innerNext.then) {
+          innerNext.then(attachListenerToNext);
+        } else {
+          attachListenerToNext();
+        }
+      }
 
       //update or reset the helper highlight class
       oldHelperLayer.className = highlightClass;
@@ -927,7 +1017,7 @@
       progressLayer.appendChild(progressBar);
 
       buttonsLayer.className = 'introjs-tooltipbuttons';
-      if (this._options.showButtons === false) {
+      if (this._options.showButtons === false || targetElement.hideButtons) {
         buttonsLayer.style.display = 'none';
       }
 

@@ -22,7 +22,7 @@
     <div class="container-narrow">
 
       <div class="masthead">
-        <ul id="step5" class="nav nav-pills pull-right">
+        <ul id="step6" class="nav nav-pills pull-right">
           <li><a href="https://github.com/usablica/intro.js/tags"><i class='icon-black icon-download-alt'></i> Download</a></li>
           <li><a href="https://github.com/usablica/intro.js">Github</a></li>
           <li><a href="https://twitter.com/usablica">@usablica</a></li>
@@ -64,6 +64,13 @@
           <p>Lorem ipsum dolor sit amet, consectetur adipiscing elit. Duis mollis augue a neque cursus ac blandit orci faucibus. Phasellus nec metus purus.</p>
         </div>
       </div>
+      <div class="row-fluid marketing">
+        <div id="step5" class="span6">
+          <h4>Section Seven</h4>
+          <p>Lorem ipsum dolor sit amet, consectetur adipiscing elit. Duis mollis augue a neque cursus ac blandit orci faucibus. Phasellus nec metus purus.</p>
+          <button class="btn" id="step5-next">Click Me to Progress</button>
+        </div>
+      </div>
 
       <hr>
 
@@ -98,6 +105,14 @@
               },
               {
                 element: '#step5',
+                intro: "This step requires you to click an highlighted element.",
+                hideButtons: true,
+                hideProgress: true,
+                hideBullets: true,
+                clickNextElement: '#step5-next'
+              },
+              {
+                element: '#step6',
                 intro: 'Get it, use it.'
               }
             ]
