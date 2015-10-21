@@ -1215,16 +1215,17 @@
    * @method _getWinSize
    * @returns {Object} width and height attributes
    */
-  function _getWinSize() {
-    if (this._options.scrollParent.innerWidth != undefined) {
+  function _getWinSize(override) {
+    override = override || this._options.scrollParent;
+    if (override.innerWidth != undefined) {
       return {
-        width: this._options.scrollParent.innerWidth,
-        height: this._options.scrollParent.innerHeight,
-        top: this._options.scrollParent.scrollY,
-        left: this._options.scrollParent.scrollX
+        width: override.innerWidth,
+        height: override.innerHeight,
+        top: override.scrollY || 0,//-this._options.scrollParent.pageYOffset,
+        left: override.scrollX || 0//-this._options.scrollParent.pageXOffset
       };
-    } else if (this._options.scrollParent !== window) {
-      return _getOffset.call(this, this._options.scrollParent);
+    } else if (override !== window) {
+      return _getOffset.call(this, override);
     } else {
       var D = document.documentElement;
       return { width: D.clientWidth, height: D.clientHeight, top:0, left: 0 };
@@ -1298,6 +1299,11 @@
 
     return true;
   }
+  // this is so hacky... :(
+  function isFirefox() {
+    // per http://stackoverflow.com/questions/9847580/how-to-detect-safari-chrome-ie-firefox-and-opera-browser
+    return (typeof InstallTrigger !== 'undefined');
+  }
 
   /**
    * Get an element position on the page
@@ -1326,8 +1332,8 @@
       element = element.offsetParent;
     }
     var wrapper = {top: 0, left: 0};
-    if (this._options.scrollParent === window) {
-      wrapper = _getWinSize.call(this);
+    if (this._options.scrollParent === window || !isFirefox()) {
+        wrapper = _getWinSize.call(this, window);
     }
     //set top
     elementPosition.top = _y + wrapper.top;
