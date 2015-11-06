@@ -330,6 +330,9 @@
    * @method _nextStep
    */
   function _nextStep() {
+    if (this._exited) {
+      return;
+    }
     this._direction = 'forward';
 
     if (typeof (this._currentStep) === 'undefined') {
@@ -481,6 +484,7 @@
 
     //set the step to zero
     this._currentStep = undefined;
+    this._exited = true;
   }
 
   /**
@@ -1324,7 +1328,7 @@
     elementPosition.height = element.offsetHeight;
 
     //calculate element top and left
-    var _x = 0;
+    /*var _x = 0;
     var _y = 0;
     while (element && !isNaN(element.offsetLeft) && !isNaN(element.offsetTop)) {
       _x += element.offsetLeft - element.scrollLeft;
@@ -1338,7 +1342,10 @@
     //set top
     elementPosition.top = _y + wrapper.top;
     //set left
-    elementPosition.left = _x + wrapper.left;
+    elementPosition.left = _x + wrapper.left;*/
+
+    elementPosition.top = element.getBoundingClientRect().top;
+    elementPosition.left = element.getBoundingClientRect().left;
 
     return elementPosition;
   }
@@ -1390,6 +1397,26 @@
     }
   };
 
+  function windowScrollRegister() {
+    if (this._windowRegistered) {
+      return;
+    }
+    this._windowRegistered = true;
+    var that = this;
+    window.addEventListener('scroll', function () {
+      if (that._currentStep === undefined) {
+        return;
+      }
+      var layer = document.querySelector('.introjs-tooltipReferenceLayer');
+      var layer2 = document.querySelector('.introjs-helperLayer');
+      layer.classList.add('no-transition');
+      layer2.classList.add('no-transition');
+      that.refresh();
+      //layer.classList.remove('no-transition');
+      //layer.style.transitionDelay = old;
+    });
+  }
+
   /**
    * Current IntroJs version
    *
@@ -1412,6 +1439,8 @@
       return this;
     },
     start: function () {
+      this._exited = false;
+      windowScrollRegister.call(this);
       _introForElement.call(this, this._targetElement);
       return this;
     },

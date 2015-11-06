@@ -48,7 +48,7 @@ tr.introjs-showElement > th {
 }
 
 .introjs-helperLayer {
-  position: absolute;
+  position: fixed;
   z-index: 9999998;
   background-color: #FFF;
   background-color: rgba(255,255,255,.9);
@@ -64,7 +64,7 @@ tr.introjs-showElement > th {
 }
 
 .introjs-tooltipReferenceLayer {
-  position: absolute;
+  position: fixed;
   visibility: hidden;
   z-index: 10000000;
   background-color: transparent;
@@ -343,4 +343,11 @@ tr.introjs-showElement > th {
   width: 0;
   left: 50%;
   top: 50%;
+}
+.no-transition {
+  -webkit-transition: none !important;
+  -moz-transition: none !important;
+  -o-transition: none !important;
+  -ms-transition: none !important;
+  transition: none !important;
 }
