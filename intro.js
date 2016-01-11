@@ -901,22 +901,6 @@
       } else {
         oldProgressLayer.style.display = '';
       }
-      // check if we want to progress by clicking an element inside the page
-      // eg. 'create widget' to progress
-      if (targetElement.clickNextElement) {
-        var innerNext = _resolveElement({element: targetElement.clickNextElement});
-        var instance = this;
-        function attachListenerToNext() {
-          _attachSubListener(targetElement, innerNext.element, 'click', function () {
-            _nextStep.call(instance);
-          });
-        }
-        if (innerNext.then) {
-          innerNext.then(attachListenerToNext);
-        } else {
-          attachListenerToNext();
-        }
-      }
 
       //update or reset the helper highlight class
       oldHelperLayer.className = highlightClass;
@@ -1130,6 +1114,23 @@
     //disable interaction
     if (this._options.disableInteraction === true) {
       _disableInteraction.call(self);
+    }
+
+    // check if we want to progress by clicking an element inside the page
+    // eg. 'create widget' to progress
+    if (targetElement.clickNextElement) {
+      var innerNext = _resolveElement({element: targetElement.clickNextElement});
+      var instance = this;
+      function attachListenerToNext() {
+        _attachSubListener(targetElement, innerNext.element, 'click', function () {
+          _nextStep.call(instance);
+        });
+      }
+      if (innerNext.then) {
+        innerNext.then(attachListenerToNext);
+      } else {
+        attachListenerToNext();
+      }
     }
 
     prevTooltipButton.removeAttribute('tabIndex');
